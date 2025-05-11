@@ -5,10 +5,10 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-# --- 外部設定（別ファイルから渡してもOK） ---
-BASE_URL = "https://www.urol.or.jp/"
-DEFAULT_LINK = "https://www.urol.or.jp/info/info-log.html"
-ORG_NAME = "日本泌尿器科学会"
+# === 学会情報 ===
+BASE_URL = "https://jsn.or.jp/medic/"
+DEFAULT_LINK = "https://jsn.or.jp/medic/news/index.php"  # トップへのリンクでも可
+ORG_NAME = "日本腎臓学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
@@ -33,30 +33,36 @@ def generate_rss(items, output_path):
     fg.rss_file(output_path)
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
+
 def extract_items(page):
-    selector = "div>dl>dd>a"
-    rows = page.locator(selector)
-    count = rows.count()
+    selector = "section.subpage__contentsData dl.contentsData__list"
+    dl_elements = page.locator(selector)
+    count = dl_elements.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10
-    for i in range(min(count, max_items)):
-        row = rows.nth(i)
+    for i in range(count):
         try:
+            dl = dl_elements.nth(i)
+
+            # 📅 日付の抽出（例: 2025.04.01）
+            date_text = dl.locator("dt.date").inner_text().strip()
+            match = re.match(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
+            if not match:
+                raise ValueError(f"日付形式エラー: {date_text}")
+            year, month, day = map(int, match.groups())
+            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
+
             # 🔗 タイトルとリンク
-            a_tag = row.locator("a").first
+            a_tag = dl.locator("dd.title a")
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
-
-            # 📝 説明文
-            description = f"{category}{title}"
+            full_link = urljoin(BASE_URL, href)
 
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
@@ -83,7 +89,6 @@ with sync_playwright() as p:
         browser.close()
         exit()
 
-    print(page.title)
     print("▶ 記事を抽出しています...")
     items = extract_items(page)
 
