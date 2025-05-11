@@ -11,9 +11,9 @@ DEFAULT_LINK = "https://www.jsog.or.jp/news_m/"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title("日本産科婦人科学会トピックス")
+    fg.title("日本消化器学会トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description("日本産科婦人科学会の最新トピック情報")
+    fg.description("日本消化器学会の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -94,6 +94,6 @@ with sync_playwright() as p:
     if not items:
         print("⚠ 抽出できた記事がありません。HTML構造が変わっている可能性があります。")
 
-    rss_path = "rss_output/Feed5.xml"
+    rss_path = "rss_output/Feed7.xml"
     generate_rss(items, rss_path)
     browser.close()
