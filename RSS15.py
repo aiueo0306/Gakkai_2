@@ -100,6 +100,7 @@ with sync_playwright() as p:
         browser.close()
         exit()
 
+    print(page.title)
     print("▶ 記事を抽出しています...")
     items = extract_items(page)
 
