@@ -49,7 +49,7 @@ def extract_items(page):
             pub_date = datetime.strptime(time_text, "%Y.%m.%d").replace(tzinfo=timezone.utc)
 
             # 🔗 タイトルとリンク取得（ddの中のaタグ）
-            a_tag = row.locator("a")
+            a_tag = row.locator("a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
