@@ -5,9 +5,10 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-ORG_NAME = "日本泌尿器科学会"
-BASE_URL = "https://www.urol.or.jp/top.html"
+# --- 外部設定（別ファイルから渡してもOK） ---
+BASE_URL = "https://www.urol.or.jp/"
 DEFAULT_LINK = "https://www.urol.or.jp/info/info-log.html"
+ORG_NAME = "日本泌尿器科学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
@@ -32,26 +33,29 @@ def generate_rss(items, output_path):
     fg.rss_file(output_path)
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
-
 def extract_items(page):
-    items = []
-    dt_rows = page.locator("dl#top_info > dt")
-    dd_rows = page.locator("dl#top_info > dd")
-    count = min(dt_rows.count(), dd_rows.count())
+    selector = "dl#top_info > dt"
+    dates = page.locator(selector)
+    count = dates.count()
     print(f"📦 発見した記事数: {count}")
+    items = []
 
-    max_items = 10
-    for i in range(min(count, max_items)):
+    for i in range(count):
         try:
-            # 🗓 日付取得（例：2025.4.24）
-            raw_date = dt_rows.nth(i).inner_text().strip()
-            pub_date = datetime.strptime(raw_date, "%Y.%m.%d").replace(tzinfo=timezone.utc)
+            # 📅 日付情報
+            date_text = dates.nth(i).inner_text().strip()  # 例: 2025.4.24
+            match = re.match(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
+            if not match:
+                raise ValueError(f"日付形式エラー: {date_text}")
+            year, month, day = map(int, match.groups())
+            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
 
-            # 🔗 タイトルとリンク
-            a_tag = dd_rows.nth(i).locator("a").first
+            # 🔗 対応する dd の中のリンクとテキスト
+            dd_locator = dates.nth(i).evaluate_handle("dt => dt.nextElementSibling")
+            a_tag = dd_locator.query_selector("a")
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
+            full_link = urljoin(BASE_URL, href)
 
             items.append({
                 "title": title,
@@ -88,6 +92,6 @@ with sync_playwright() as p:
     if not items:
         print("⚠ 抽出できた記事がありません。HTML構造が変わっている可能性があります。")
 
-    rss_path = "rss_output/Feed15.xml"
+    rss_path = "rss_output/Feed_urol.xml"
     generate_rss(items, rss_path)
     browser.close()
