@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: 3.11
 
+      - name: Download shared requirements
+        run: curl -O https://raw.githubusercontent.com/aiueo0306/shared-python-env/main/requirements.txt
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
