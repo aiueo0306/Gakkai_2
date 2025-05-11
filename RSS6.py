@@ -4,15 +4,15 @@ from urllib.parse import urljoin
 import os
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.chemotherapy.or.jp/"
+BASE_URL = "https://www.j-endo.jp/"
 DEFAULT_LINK1 = "https://www.j-endo.jp/modules/news_list/index.php?content_id=1"
 DEFAULT_LINK2 = "https://www.j-endo.jp/modules/news_list/index.php?content_id=2"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title("日本化学療法学会トピックス")
+    fg.title("日本内分泌学会トピックス")
     fg.link(href=BASE_URL)
-    fg.description("日本化学療法学会の最新トピック情報")
+    fg.description("日本内分泌学会の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
