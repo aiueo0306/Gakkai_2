@@ -34,7 +34,7 @@ def generate_rss(items, output_path):
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
 def extract_items(page):
-    selector = "dl#top_info > dt"
+    selector = "dl#top_info > dd"
     dates = page.locator(selector)
     count = dates.count()
     print(f"📦 発見した記事数: {count}")
@@ -92,6 +92,6 @@ with sync_playwright() as p:
     if not items:
         print("⚠ 抽出できた記事がありません。HTML構造が変わっている可能性があります。")
 
-    rss_path = "rss_output/Feed_urol.xml"
+    rss_path = "rss_output/Feed15.xml"
     generate_rss(items, rss_path)
     browser.close()
