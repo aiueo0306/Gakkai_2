@@ -6,7 +6,7 @@ import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 BASE_URL = "https://www.joa.or.jp/"
-DEFAULT_LINK = "https://www.joa.or.jp/public/news/"  # 任意で設定
+DEFAULT_LINK = "https://www.joa.or.jp/"  # 任意で設定
 ORG_NAME = "日本整形外科学会"
 
 def generate_rss(items, output_path):
