@@ -33,7 +33,7 @@ def generate_rss(items, output_path):
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
 
-ddef extract_items(page):
+def extract_items(page):
     selector = "ul.list > li"
     rows = page.locator(selector)
     count = rows.count()
