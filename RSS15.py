@@ -34,25 +34,25 @@ def generate_rss(items, output_path):
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
 def extract_items(page):
-    selector = "dl > dd > a"
-    dates = page.locator(selector)
-    count = dates.count()
+    dt_elements = page.locator("dl#top_info dt")
+    dd_elements = page.locator("dl#top_info dd")
+    count = dt_elements.count()
     print(f"📦 発見した記事数: {count}")
+
     items = []
 
     for i in range(count):
         try:
-            # 📅 日付情報
-            date_text = dates.nth(i).inner_text().strip()  # 例: 2025.4.24
+            # 📅 日付取得
+            date_text = dt_elements.nth(i).inner_text().strip()
             match = re.match(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
             if not match:
                 raise ValueError(f"日付形式エラー: {date_text}")
             year, month, day = map(int, match.groups())
             pub_date = datetime(year, month, day, tzinfo=timezone.utc)
 
-            # 🔗 対応する dd の中のリンクとテキスト
-            dd_locator = dates.nth(i).evaluate_handle("dt => dt.nextElementSibling")
-            a_tag = dd_locator.query_selector("a")
+            # 🔗 リンクとタイトル
+            a_tag = dd_elements.nth(i).locator("a")
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href)
