@@ -5,9 +5,9 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jshp.or.jp/"
-DEFAULT_LINK = "https://www.jshp.or.jp/general/index.html"
-ORG_NAME = "日本病院薬剤師会"
+BASE_URL = "https://www.jbcs.gr.jp/"
+DEFAULT_LINK = "https://www.jbcs.gr.jp/modules/info/"
+ORG_NAME = "日本乳癌学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
@@ -34,28 +34,34 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "div.clearfix p"
-    rows = page.locator(selector)
-    count = rows.count()
+    title_selectors = page.locator("div.title_news")
+    count = title_selectors.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 1
-    for i in range(min(count, max_items)):
-        row = rows.nth(i)
+    for i in range(count):
         try:
-            # 🔗 タイトルとリンク
-            a_tag = row.locator("a").first
+            title_div = title_selectors.nth(i)
+            a_tag = title_div.locator("a")
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
+            full_link = urljoin(BASE_URL, href)
 
-            pub_date = datetime.now(timezone.utc)
-        
+            # 日付は隣接する div.date_news にある
+            date_div = title_div.evaluate_handle("el => el.nextElementSibling")
+            date_text = date_div.inner_text().strip()
+
+            # 日付から年月日を抽出
+            match = re.search(r"(\d{4})年(\d{1,2})月(\d{1,2})日", date_text)
+            if not match:
+                raise ValueError(f"日付形式が不明: {date_text}")
+            year, month, day = map(int, match.groups())
+            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
+
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
@@ -64,6 +70,7 @@ def extract_items(page):
             continue
 
     return items
+
 
 # ===== 実行ブロック =====
 with sync_playwright() as p:
@@ -87,6 +94,6 @@ with sync_playwright() as p:
     if not items:
         print("⚠ 抽出できた記事がありません。HTML構造が変わっている可能性があります。")
 
-    rss_path = "rss_output/Feed11.xml"
+    rss_path = "rss_output/Feed18.xml"
     generate_rss(items, rss_path)
     browser.close()
