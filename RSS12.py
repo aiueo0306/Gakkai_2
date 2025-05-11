@@ -64,7 +64,7 @@ for i in range(min(count, 10)):
         })
     except Exception as e:
         print(f"⚠ 行{i+1}の解析に失敗: {e}")
-            continue
+        continue
 
     return items
 
