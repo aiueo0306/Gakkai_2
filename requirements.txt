@@ -1,4 +1,0 @@
-feedgen
-playwright
-requests
-beautifulsoup4
