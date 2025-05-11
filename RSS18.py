@@ -5,9 +5,9 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jasdi.jp/"
-DEFAULT_LINK = "https://www.jasdi.jp/news_photo"
-ORG_NAME = "日本小児神経学会"
+BASE_URL = "https://www.jshp.or.jp/"
+DEFAULT_LINK = "https://www.jshp.or.jp/general/index.html"
+ORG_NAME = "日本病院薬剤師会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
@@ -35,62 +35,27 @@ def generate_rss(items, output_path):
 
 def extract_items(page):
     selector = "div.clearfix p"
-    paragraphs = page.locator(selector)
-    count = paragraphs.count()
+    rows = page.locator(selector)
+    count = rows.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    for i in range(count):
-        try:
-            p_tag = paragraphsdef extract_items(page):
-    selector = "div.clearfix p"
-    paragraphs = page.locator(selector)
-    count = paragraphs.count()
-    print(f"📦 発見した記事数: {count}")
-    items = []
-    
     max_items = 1
-    for i in range(min(count, max_items)):        try:
-            p_tag = paragraphs.nth(i)
-            full_text = p_tag.inner_text().strip()
-
-            # <a> タグの中のテキストとリンクを抽出
-            a_tag = p_tag.locator("a")
+    for i in range(min(count, max_items)):
+        row = rows.nth(i)
+        try:
+            # 🔗 タイトルとリンク
+            a_tag = row.locator("a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href)
+            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
 
-            # 日付がないため現在時刻を代用（必要に応じてNoneも可）
             pub_date = datetime.now(timezone.utc)
-
+        
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": full_text,
-                "pub_date": pub_date
-            })
-
-        except Exception as e:
-            print(f"⚠ 行{i+1}の解析に失敗: {e}")
-            continue
-
-    return items
-
-            full_text = p_tag.inner_text().strip()
-
-            # <a> タグの中のテキストとリンクを抽出
-            a_tag = p_tag.locator("a")
-            title = a_tag.inner_text().strip()
-            href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href)
-
-            # 日付がないため現在時刻を代用（必要に応じてNoneも可）
-            pub_date = datetime.now(timezone.utc)
-
-            items.append({
-                "title": title,
-                "link": full_link,
-                "description": full_text,
+                "description": description,
                 "pub_date": pub_date
             })
 
@@ -122,6 +87,6 @@ with sync_playwright() as p:
     if not items:
         print("⚠ 抽出できた記事がありません。HTML構造が変わっている可能性があります。")
 
-    rss_path = "rss_output/Feed18.xml"
+    rss_path = "rss_output/Feed11.xml"
     generate_rss(items, rss_path)
     browser.close()
