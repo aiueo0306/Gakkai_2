@@ -43,7 +43,8 @@ def extract_items(page):
     for i in range(min(count, 10)):
         row = rows.nth(i)
         try:
-            dt_elem = row.locator("dt")
+            # ✅ dtをliの中のdlから限定して取得
+            dt_elem = row.locator("dl > dt").first
             raw_date_text = dt_elem.inner_text().strip().lstrip("■")
             match = re.search(r"\d{4}年\d{1,2}月\d{1,2}日", raw_date_text)
             if not match:
@@ -51,7 +52,8 @@ def extract_items(page):
             time_text = match.group()
             pub_date = datetime.strptime(time_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
 
-            a_tag = row.locator("dd a").first
+            # ✅ dd aからタイトルとリンク
+            a_tag = row.locator("dl > dd > a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href)
