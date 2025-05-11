@@ -39,23 +39,26 @@ def extract_items1(page):
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10  # 任意の制限
+    max_items = 10
     for i in range(min(count, max_items)):
         row = rows.nth(i)
         try:
-            # 📅 同じインデックスの .date_news から日付取得
-            time_text = page.locator(".date_news").nth(i).inner_text().strip()
+            # 📅 正規表現で日付だけ取り出す
+            date_block = page.locator(".date_news").nth(i)
+            raw_date_text = date_block.inner_text().strip()
+            match = re.search(r"\d{4}年\d{1,2}月\d{1,2}日", raw_date_text)
+            if not match:
+                raise ValueError(f"日付が見つかりません: {raw_date_text}")
+            time_text = match.group()
             pub_date = datetime.strptime(time_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
 
-            # 🔗 タイトルとリンク取得（title_news内のaタグ）
+            # 🔗 タイトルとリンク
             a_tag = row.locator("a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK1
 
-            # 📂 カテゴリは今回存在しないため空文字
             category = ""
-
             description = f"{category}{title}"
 
             items.append({
@@ -70,6 +73,7 @@ def extract_items1(page):
             continue
 
     return items
+
 
 
 def extract_items2(page):
@@ -79,29 +83,31 @@ def extract_items2(page):
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10  # 任意の制限
+    max_items = 10
     for i in range(min(count, max_items)):
         row = rows.nth(i)
         try:
-            # 📅 対応する .date_news のテキストから日付のみを抽出
             date_block = page.locator(".date_news").nth(i)
-            time_text = date_block.inner_text().strip().split("NEW")[0].strip()
+            raw_date_text = date_block.inner_text().strip()
+            match = re.search(r"\d{4}年\d{1,2}月\d{1,2}日", raw_date_text)
+            if not match:
+                raise ValueError(f"日付が見つかりません: {raw_date_text}")
+            time_text = match.group()
             pub_date = datetime.strptime(time_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
 
-            # 📂 カテゴリ（あれば取得）
+            # 📂 カテゴリ（存在する場合）
             category = ""
             try:
                 category = date_block.locator(".ico_s").inner_text().strip() + "："
             except:
                 pass
 
-            # 🔗 タイトルとリンク取得
+            # 🔗 タイトルとリンク
             a_tag = row.locator("a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK2
 
-            # 📝 説明文：カテゴリ付きタイトル
             description = f"{category}{title}"
 
             items.append({
@@ -116,6 +122,7 @@ def extract_items2(page):
             continue
 
     return items
+
 
 
 
