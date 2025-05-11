@@ -35,36 +35,37 @@ def generate_rss(items, output_path):
 
 def extract_items(page):
     selector = "li.odd"
-rows = page.locator(selector)
-count = rows.count()
-print(f"📦 発見した記事数: {count}")
-items = []
+    rows = page.locator(selector)
+    count = rows.count()
+    print(f"📦 発見した記事数: {count}")
+    items = []
 
-for i in range(min(count, 10)):
-    row = rows.nth(i)
-    try:
-        dt_elem = row.locator("dt")
-        raw_date_text = dt_elem.inner_text().strip().lstrip("■")
-        match = re.search(r"\d{4}年\d{1,2}月\d{1,2}日", raw_date_text)
-        if not match:
-            raise ValueError(f"日付が見つかりません: {raw_date_text}")
-        time_text = match.group()
-        pub_date = datetime.strptime(time_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
+    for i in range(min(count, 10)):
+        row = rows.nth(i)
+        try:
+            dt_elem = row.locator("dt")
+            raw_date_text = dt_elem.inner_text().strip().lstrip("■")
+            match = re.search(r"\d{4}年\d{1,2}月\d{1,2}日", raw_date_text)
+            if not match:
+                raise ValueError(f"日付が見つかりません: {raw_date_text}")
+            time_text = match.group()
+            pub_date = datetime.strptime(time_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
 
-        a_tag = row.locator("dd a").first
-        title = a_tag.inner_text().strip()
-        href = a_tag.get_attribute("href")
-        full_link = urljoin(BASE_URL, href)
+            a_tag = row.locator("dd a").first
+            title = a_tag.inner_text().strip()
+            href = a_tag.get_attribute("href")
+            full_link = urljoin(BASE_URL, href)
 
-        items.append({
-            "title": title,
-            "link": full_link,
-            "description": title,
-            "pub_date": pub_date
-        })
-    except Exception as e:
-        print(f"⚠ 行{i+1}の解析に失敗: {e}")
-        continue
+            items.append({
+                "title": title,
+                "link": full_link,
+                "description": title,
+                "pub_date": pub_date
+            })
+
+        except Exception as e:
+            print(f"⚠ 行{i+1}の解析に失敗: {e}")
+            continue
 
     return items
 
