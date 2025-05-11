@@ -42,7 +42,40 @@ def extract_items(page):
 
     for i in range(count):
         try:
+            p_tag = paragraphsdef extract_items(page):
+    selector = "div.clearfix p"
+    paragraphs = page.locator(selector)
+    count = paragraphs.count()
+    print(f"📦 発見した記事数: {count}")
+    items = []
+    
+    max_items = 1
+    for i in range(min(count, max_items)):        try:
             p_tag = paragraphs.nth(i)
+            full_text = p_tag.inner_text().strip()
+
+            # <a> タグの中のテキストとリンクを抽出
+            a_tag = p_tag.locator("a")
+            title = a_tag.inner_text().strip()
+            href = a_tag.get_attribute("href")
+            full_link = urljoin(BASE_URL, href)
+
+            # 日付がないため現在時刻を代用（必要に応じてNoneも可）
+            pub_date = datetime.now(timezone.utc)
+
+            items.append({
+                "title": title,
+                "link": full_link,
+                "description": full_text,
+                "pub_date": pub_date
+            })
+
+        except Exception as e:
+            print(f"⚠ 行{i+1}の解析に失敗: {e}")
+            continue
+
+    return items
+
             full_text = p_tag.inner_text().strip()
 
             # <a> タグの中のテキストとリンクを抽出
