@@ -44,23 +44,6 @@ def extract_items(page):
     for i in range(min(count, max_items)):
         row = rows.nth(i)
         try:
-            # 📅 対応する .date_news の日付取得
-            date_block = page.locator(".date_news").nth(i)
-            date_text = date_block.inner_text().strip()
-            
-            try:
-                pub_date = datetime.strptime(date_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
-            except ValueError:
-                print(f"⚠ 行{i+1}: 日付形式エラーでスキップ → '{date_text}'")
-                continue
-
-            # 📂 カテゴリ（任意：会員専用など）
-            category = ""
-            try:
-                category = page.locator(".ico_member").nth(i).inner_text().strip() + "："
-            except:
-                pass
-
             # 🔗 タイトルとリンク
             a_tag = row.locator("a").first
             title = a_tag.inner_text().strip()
