@@ -49,7 +49,7 @@ def extract_items1(page):
             a_tag = row.locator(".entryTitle a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL1, href) if href else DEFAULT_LINK
+            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK1
 
             # 🗓 日付
             date_text = row.locator(".infoDate").inner_text().strip()
@@ -93,7 +93,7 @@ def extract_items2(page):
             a_tag = row.locator(".entryTitle a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
+            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK2
 
             # 📅 日付が存在すれば取得、なければスキップ or 現在時刻
             try:
