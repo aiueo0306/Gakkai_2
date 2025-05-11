@@ -34,34 +34,46 @@ def generate_rss(items, output_path):
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
 def extract_items(page):
-    dt_list = page.locator("dl > dt")
-    dd_list = page.locator("dl > dd")
-
-    dt_count = dt_list.count()
-    dd_count = dd_list.count()
-    count = min(dt_count, dd_count)
+    selector = "dl > dd > a"
+    rows = page.locator(selector)
+    count = rows.count()
     print(f"📦 発見した記事数: {count}")
-
     items = []
 
-    for i in range(count):
+    max_items = 10
+    for i in range(min(count, max_items)):
+        row = rows.nth(i)
         try:
-            date_text = dt_list.nth(i).inner_text().strip()
-            match = re.match(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
-            if not match:
-                raise ValueError(f"日付形式エラー: {date_text}")
-            year, month, day = map(int, match.groups())
-            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
+            # 📅 対応する .date_news の日付取得
+            date_block = page.locator(".date_news").nth(i)
+            date_text = date_block.inner_text().strip()
+            
+            try:
+                pub_date = datetime.strptime(date_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
+            except ValueError:
+                print(f"⚠ 行{i+1}: 日付形式エラーでスキップ → '{date_text}'")
+                continue
 
-            a_tag = dd_list.nth(i).locator("a")
+            # 📂 カテゴリ（任意：会員専用など）
+            category = ""
+            try:
+                category = page.locator(".ico_member").nth(i).inner_text().strip() + "："
+            except:
+                pass
+
+            # 🔗 タイトルとリンク
+            a_tag = row.locator("a").first
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href)
+            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
+
+            # 📝 説明文
+            description = f"{category}{title}"
 
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": title,
+                "description": description,
                 "pub_date": pub_date
             })
 
@@ -70,6 +82,7 @@ def extract_items(page):
             continue
 
     return items
+
 
 # ===== 実行ブロック =====
 with sync_playwright() as p:
