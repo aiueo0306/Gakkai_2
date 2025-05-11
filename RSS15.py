@@ -34,8 +34,8 @@ def generate_rss(items, output_path):
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
 def extract_items(page):
-    dt_list = page.locator("div > dl > dt")
-    dd_list = page.locator("div > dl > dd")
+    dt_list = page.locator("dl > dt")
+    dd_list = page.locator("dl > dd")
 
     dt_count = dt_list.count()
     dd_count = dd_list.count()
