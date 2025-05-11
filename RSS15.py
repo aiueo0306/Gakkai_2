@@ -34,7 +34,7 @@ def generate_rss(items, output_path):
     print(f"\n✅ RSSフィード生成完了！📄 保存先: {output_path}")
 
 def extract_items(page):
-    selector = "a"
+    selector = "div>dl>dd>a"
     rows = page.locator(selector)
     count = rows.count()
     print(f"📦 発見した記事数: {count}")
