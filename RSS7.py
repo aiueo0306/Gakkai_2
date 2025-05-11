@@ -11,9 +11,9 @@ DEFAULT_LINK = "https://www.jsge.or.jp/news/"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title("日本産科婦人科学会トピックス")
+    fg.title("日本消化器学会トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description("日本産科婦人科学会の最新トピック情報")
+    fg.description("日本消化器学会の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
