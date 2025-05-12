@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 
 # === 学会情報 ===
 BASE_URL = "https://www.jnss.org/"
-DEFAULT_LINK = "https://www.jnss.org/information/"
+DEFAULT_LINK = "https://www.jnss.org/"
 ORG_NAME = "日本神経科学学会"
 
 def generate_rss(items, output_path):
