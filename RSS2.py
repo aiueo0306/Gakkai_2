@@ -2,17 +2,19 @@ from feedgen.feed import FeedGenerator
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 import os
+import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://jssr.info/"
-DEFAULT_LINK = "https://jssr.info/"
-
+# === 学会情報 ===
+BASE_URL = "https://jsbmr.umin.jp/"
+DEFAULT_LINK = "https://jsbmr.umin.jp/"
+ORG_NAME = "日本骨代謝学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title("日本統合失調症学会トピックス")
+    fg.title(f"{ORG_NAME}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description("日本統合失調症学会の最新トピック情報")
+    fg.description(f"{ORG_NAME}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -33,29 +35,34 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "#information > dl > dd"
-    rows = page.locator(selector)
-    count = rows.count()
+    selector = "div.news"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10  # 任意の制限
-    for i in range(min(count, max_items)):
-        row = rows.nth(i)
+    for i in range(count):
         try:
-            # 📅 dtとddが交互に並ぶ構造 → nth-childを使う
-            dt_selector = f"#information > dl > dt:nth-child({2 * i + 1})"
-            time_text = page.locator(dt_selector).inner_text().strip()
-            pub_date = datetime.strptime(time_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
+            block = blocks.nth(i)
 
-            # 🔗 タイトルとリンク取得（dd内のa）
-            a_tag = row.locator("a").first
-            title = a_tag.inner_text().strip()
+            # 📅 日付
+            date_text = block.locator(".new_date").inner_text().strip()
+            match = re.search(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
+            if not match:
+                raise ValueError(f"日付形式不明: {date_text}")
+            year, month, day = map(int, match.groups())
+            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
+
+            # 🏷 タイトル
+            title = block.locator("h4").inner_text().strip()
+
+            # 🔗 リンク（<p>内のaタグのhref）
+            a_tag = block.locator("p a")
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
+            full_link = urljoin(BASE_URL, href)
 
-            category = ""
-            description = f"{category}{title}"
+            # 📄 説明文（<p>タグ全体のテキスト）
+            description = block.locator("p").inner_text().strip()
 
             items.append({
                 "title": title,
