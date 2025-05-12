@@ -46,19 +46,14 @@ def extract_items(page):
         try:
             block = blocks.nth(i)
 
-            # 📅 日付
-            date_text = block.locator(".new_date").inner_text().strip()
-            match = re.search(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
-            if not match:
-                raise ValueError(f"日付形式不明: {date_text}")
-            year, month, day = map(int, match.groups())
-            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
 
             # 🏷 タイトル
             title = block.locator("h4").inner_text().strip()
 
             # 🔗 リンク（<p>内のaタグのhref）
-            a_tag = block.locator("p a")
+            a_tag = block.locator("a")
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href)
 
