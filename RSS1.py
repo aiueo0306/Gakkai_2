@@ -41,7 +41,8 @@ def extract_items(page):
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    for i in range(count):
+    max_items = 10
+    for i in range(min(count, max_items)):
         try:
             row = rows.nth(i)
 
