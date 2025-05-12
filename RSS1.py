@@ -2,17 +2,19 @@ from feedgen.feed import FeedGenerator
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 import os
+import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "http://www.jiaio.umin.jp/"
-DEFAULT_LINK = "http://www.jiaio.umin.jp/"
-
+# === 学会情報 ===
+BASE_URL = "https://www.jnss.org/"
+DEFAULT_LINK = "https://www.jnss.org/information/"
+ORG_NAME = "日本神経科学学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title("日本耳鼻咽喉科免疫アレルギー感染症学会トピックス")
+    fg.title(f"{ORG_NAME}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description("日本耳鼻咽喉科免疫アレルギー感染症学会の最新トピック情報")
+    fg.description(f"{ORG_NAME}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -33,36 +35,34 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "#news > dl > dd"
+    selector = "tr:has(td a)"
     rows = page.locator(selector)
     count = rows.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10  # 任意の制限
-    for i in range(min(count, max_items)):
-        row = rows.nth(i)
+    for i in range(count):
         try:
-            # 📅 日付を dd の直前の dt から取得
-            time_locator = f"#news > dl > dt:nth-of-type({2*i+1})"
-            time_text = page.locator(time_locator).inner_text().strip()
-            pub_date = datetime.strptime(time_text, "%Y.%m.%d").replace(tzinfo=timezone.utc)
+            row = rows.nth(i)
 
-            # 🔗 タイトルとリンク取得（ddの中のaタグ）
-            a_tag = row.locator("a").first
+            # 🔗 aタグからタイトルとリンク取得
+            a_tag = row.locator("td a")
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
+            full_link = urljoin(BASE_URL, href)
 
-            # 📂 カテゴリがなければ空文字
-            category = ""
-
-            description = f"{category}{title}"
+            # 📅 th内テキストから日付を抽出（画像を除いてテキスト部分のみ）
+            th_text = row.locator("th").inner_text().strip()
+            match = re.search(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", th_text)
+            if not match:
+                raise ValueError(f"日付形式が不明: {th_text}")
+            year, month, day = map(int, match.groups())
+            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
 
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
@@ -71,6 +71,8 @@ def extract_items(page):
             continue
 
     return items
+
+
 
 # ===== 実行ブロック =====
 with sync_playwright() as p:
