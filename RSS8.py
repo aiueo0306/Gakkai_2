@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.joa.or.jp/"
-DEFAULT_LINK = "https://www.joa.or.jp/"  # 任意で設定
-ORG_NAME = "日本整形外科学会"
+BASE_URL = "http://www.jssp.umin.jp/"
+DEFAULT_LINK = "http://www.jssp.umin.jp/"
+GAKKAI = "日本口腔・咽頭科学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title(f"{ORG_NAME}トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description(f"{ORG_NAME}の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,33 +34,32 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "li.p-news_item"
-    rows = page.locator(selector)
-    count = rows.count()
+    selector = "div.flex-sction dd"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
     max_items = 10
     for i in range(min(count, max_items)):
-        row = rows.nth(i)
         try:
-            # 🔗 タイトルとリンク取得
-            a_tag = row.locator(".p-news__title a")
-            title = a_tag.inner_text().strip()
+            block = blocks.nth(i)
+
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
+
+            # 🏷 タイトル
+            title = block.locator("dd").first.inner_text().strip()
+
+            # 🔗 リンク（<p>内のaタグのhref）
+            a_tag = block.locator("a").first
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
-
-            # 🗓 日付（datetime属性から直接取得）
-            date_attr = row.locator("time.p-news__date").get_attribute("datetime")
-            pub_date = datetime.strptime(date_attr, "%Y/%m/%d").replace(tzinfo=timezone.utc)
-
-            # 📂 カテゴリ（今回はなし、または importanceNews で判定可能）
-            description = title
+            full_link = urljoin(BASE_URL, href)
 
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
