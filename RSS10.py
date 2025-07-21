@@ -40,7 +40,7 @@ def extract_items(page):
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10
+    max_items = 1
     for i in range(min(count, max_items)):
         try:
             block = blocks.nth(i)
