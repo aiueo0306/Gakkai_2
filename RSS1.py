@@ -47,7 +47,7 @@ def extract_items(page):
             row = rows.nth(i)
 
             # 🔗 aタグからタイトルとリンク取得
-            a_tag = row.locator("td a").first
+            a_tag = row.locator("td a")
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href)
