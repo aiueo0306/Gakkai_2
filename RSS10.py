@@ -54,11 +54,11 @@ def extract_items(page):
             
             try:
                 href = block.locator("a").first.get_attribute("href")
+                full_link = urljoin(BASE_URL, href)
             except:
                 href = ""
+                full_link = DEFAULT_LINK
             
-            full_link = urljoin(BASE_URL, href)
-
             items.append({
                 "title": title,
                 "link": full_link,
