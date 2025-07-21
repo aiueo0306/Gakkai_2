@@ -51,8 +51,17 @@ def extract_items(page):
             # 🏷 タイトル
             title = block.locator("td").nth(1).inner_text().strip()
             # 🔗 リンク（<p>内のaタグのhref）
-            a_tag = block.locator("a").first
-            href = a_tag.get_attribute("href")
+            
+            try:
+                title = block.locator("a").first.inner_text().strip()
+            except:
+                title = ""
+
+            try:
+                href = block.locator("a").first.get_attribute("href")
+            except:
+                href = ""
+            
             full_link = urljoin(BASE_URL, href)
 
             items.append({
