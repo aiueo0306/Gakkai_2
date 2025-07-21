@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jsge.or.jp/"
-DEFAULT_LINK = "https://www.jsge.or.jp/news/"
-
+BASE_URL = "https://jsph.gr.jp/"
+DEFAULT_LINK = "https://jsph.gr.jp/news/"
+GAKKAI = "日本門脈圧亢進症学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title("日本消化器学会トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description("日本消化器学会の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,38 +34,32 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "li.p-news-list__item"
-    rows = page.locator(selector)
-    count = rows.count()
+    selector = "article.p-news-list__item p-article04 item animate"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10  # 任意の制限
+    max_items = 10
     for i in range(min(count, max_items)):
-        row = rows.nth(i)
         try:
-            # 🔗 タイトル、リンク、カテゴリ
-            a_tag = row.locator("a").first
-            title = a_tag.locator(".p-article04__title").inner_text().strip()
+            block = blocks.nth(i)
+
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
+
+            # 🏷 タイトル
+            title = block.locator("a").first.inner_text().strip()
+
+            # 🔗 リンク（<p>内のaタグのhref）
+            a_tag = block.locator("a").first
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
-
-            category = ""
-            try:
-                category = a_tag.locator(".p-article04__cat").inner_text().strip() + "："
-            except:
-                pass
-
-            # 🗓 日付の取得（datetime属性の方が信頼性が高い）
-            date_attr = a_tag.locator("time").get_attribute("datetime")
-            pub_date = datetime.strptime(date_attr, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-
-            description = f"{category}{title}"
+            full_link = urljoin(BASE_URL, href)
 
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
@@ -74,7 +68,6 @@ def extract_items(page):
             continue
 
     return items
-
 
 # ===== 実行ブロック =====
 with sync_playwright() as p:
