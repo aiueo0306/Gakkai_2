@@ -5,8 +5,8 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://jspr.umin.jp/"
-DEFAULT_LINK = "https://jspr.umin.jp/"
+BASE_URL = "https://www.neurochemistry.jp/"
+DEFAULT_LINK = "https://www.neurochemistry.jp/information/"
 GAKKAI = "日本神経科会"
 
 def generate_rss(items, output_path):
