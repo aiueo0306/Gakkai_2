@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jsog.or.jp/medical/368/"
-DEFAULT_LINK = "https://www.jsog.or.jp/news_m/"
-
+BASE_URL = "https://jspr.umin.jp/"
+DEFAULT_LINK = "https://jspr.umin.jp/"
+GAKKAI = "日本乾癬学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title("日本消化器学会トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description("日本消化器学会の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,7 +34,7 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = ".title_news"
+    selector = "li"
     rows = page.locator(selector)
     count = rows.count()
     print(f"📦 発見した記事数: {count}")
@@ -53,16 +53,11 @@ def extract_items(page):
             title = a_tag.inner_text().strip()
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
-
-            # 📂 カテゴリは今回存在しないため空文字
-            category = ""
-
-            description = f"{category}{title}"
-
+            
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
