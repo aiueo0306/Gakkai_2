@@ -57,13 +57,9 @@ def extract_items(page):
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href)
 
-            # 📄 説明文（<p>タグ全体のテキスト）
-            description = block.locator("p").inner_text().strip()
-
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
                 "pub_date": pub_date
             })
 
