@@ -35,25 +35,27 @@ def generate_rss(items, output_path):
 
 def extract_items(page):
     selector = "li"
-    rows = page.locator(selector)
-    count = rows.count()
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    max_items = 10  # 任意の制限
+    max_items = 10
     for i in range(min(count, max_items)):
-        row = rows.nth(i)
         try:
-            # 📅 同じインデックスの .date_news から日付取得
-            time_text = page.locator(".date_news").nth(i).inner_text().strip()
-            pub_date = datetime.strptime(time_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
+            block = blocks.nth(i)
 
-            # 🔗 タイトルとリンク取得（title_news内のaタグ）
-            a_tag = row.locator("a").first
-            title = a_tag.inner_text().strip()
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
+
+            # 🏷 タイトル
+            title = block.locator("a").first.inner_text().strip()
+
+            # 🔗 リンク（<p>内のaタグのhref）
+            a_tag = block.locator("a").first
             href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
-            
+            full_link = urljoin(BASE_URL, href)
+
             items.append({
                 "title": title,
                 "link": full_link,
