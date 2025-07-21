@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.childneuro.jp/"
-DEFAULT_LINK = "https://www.childneuro.jp/"
-ORG_NAME = "日本小児神経学会"
+BASE_URL = "http://www.josteo.com/"
+DEFAULT_LINK = "http://www.josteo.com/news/"
+GAKKAI = "日本骨粗鬆症学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title(f"{ORG_NAME}トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description(f"{ORG_NAME}の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,41 +34,35 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = ".title_news"
-    rows = page.locator(selector)
-    count = rows.count()
+    selector = "ul.news-list li"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
     max_items = 10
     for i in range(min(count, max_items)):
-        row = rows.nth(i)
         try:
-            # 📅 対応する .date_news の日付取得
-            date_block = page.locator(".date_news").nth(i)
-            date_text = date_block.inner_text().strip()
-            pub_date = datetime.strptime(date_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
+            block = blocks.nth(i)
 
-            # 📂 カテゴリ（任意：会員専用など）
-            category = ""
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
+
+            # 🏷 タイトル
+            title = block.locator("p").nth(1).inner_text().strip()
+            # 🔗 リンク（<p>内のaタグのhref）
+            
             try:
-                category = page.locator(".ico_member").nth(i).inner_text().strip() + "："
+                href = block.locator("a").first.get_attribute("href")
+                full_link = urljoin(BASE_URL, href)
             except:
-                pass
-
-            # 🔗 タイトルとリンク
-            a_tag = row.locator("a").first
-            title = a_tag.inner_text().strip()
-            href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
-
-            # 📝 説明文
-            description = f"{category}{title}"
-
+                href = ""
+                full_link = DEFAULT_LINK
+            
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
