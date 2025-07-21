@@ -55,7 +55,7 @@ def extract_items(page):
             print(f"{i} 記事名: {title}")
             
             # 🔗 リンク（<p>内のaタグのhref）
-            a_tag = block.locator("a")
+            a_tag = block.locator("a").first
             href = a_tag.get_attribute("href")
             full_link = urljoin(BASE_URL, href)
 
