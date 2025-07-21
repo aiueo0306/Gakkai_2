@@ -49,7 +49,7 @@ def extract_items(page):
             pub_date = datetime.now(timezone.utc)
 
             # 🏷 タイトル
-            title = block.locator("li").first.inner_text().strip()
+            title = block.locator("a").first.inner_text().strip()
             # 🔗 リンク（<p>内のaタグのhref）
             a_tag = block.locator("a").first
             href = a_tag.get_attribute("href")
