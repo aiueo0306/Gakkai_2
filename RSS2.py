@@ -51,7 +51,9 @@ def extract_items(page):
 
             # 🏷 タイトル
             title = block.locator("h4").inner_text().strip()
-
+            
+            print(f"{i} 記事名: {title}")
+            
             # 🔗 リンク（<p>内のaタグのhref）
             a_tag = block.locator("a")
             href = a_tag.get_attribute("href")
