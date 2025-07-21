@@ -60,6 +60,7 @@ def extract_items(page):
             items.append({
                 "title": title,
                 "link": full_link,
+                "description": title,
                 "pub_date": pub_date
             })
 
