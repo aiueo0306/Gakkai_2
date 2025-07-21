@@ -34,7 +34,7 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "ul.member_info_list"
+    selector = "ul.member_info_list li"
     blocks = page.locator(selector)
     count = blocks.count()
     print(f"📦 発見した記事数: {count}")
