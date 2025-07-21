@@ -51,13 +51,13 @@ def extract_items(page):
             # 🏷 タイトル
             title = block.locator("a").first.inner_text().strip()
             
-            print (title)
+            print(title)
             
             # 🔗 リンク（<p>内のaタグのhref）
             a_tag = block.locator("a").first
             href = a_tag.get_attribute("href")
 
-            print (href)
+            print(href)
             
             full_link = urljoin(BASE_URL, href)
 
