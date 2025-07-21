@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 
 # === 学会情報 ===
 BASE_URL = "https://www.jnss.org/"
-DEFAULT_LINK = "https://www.jnss.org/"
+DEFAULT_LINK = "https://www.jnss.org/news-topics"
 ORG_NAME = "日本神経科学学会"
 
 def generate_rss(items, output_path):
@@ -35,7 +35,7 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "tr:has(td a)"
+    selector = "table.righttbl"
     rows = page.locator(selector)
     count = rows.count()
     print(f"📦 発見した記事数: {count}")
