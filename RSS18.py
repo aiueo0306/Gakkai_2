@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jbcs.gr.jp/index.php"
-DEFAULT_LINK = "https://www.jbcs.gr.jp/modules/info_list/index.php?content_id=1"
-ORG_NAME = "日本乳癌学会"
+BASE_URL = "https://plaza.umin.ac.jp/jrs/"
+DEFAULT_LINK = "https://plaza.umin.ac.jp/jrs/index.html"
+GAKKAI = "日本鼻科学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title(f"{ORG_NAME}トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description(f"{ORG_NAME}の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,30 +34,34 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    title_selectors = page.locator("div.title_news")
-    count = title_selectors.count()
+
+    page.wait_for_selector("section#news li", timeout=10000) 
+    
+    selector = "section#news li"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    for i in range(count):
+    max_items = 10
+    for i in range(min(count, max_items)):
         try:
-            title_div = title_selectors.nth(i)
-            a_tag = title_div.locator("a")
-            title = a_tag.inner_text().strip()
-            href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href)
+            block = blocks.nth(i)
 
-            # 日付は隣接する div.date_news にある
-            date_div = title_div.evaluate_handle("el => el.nextElementSibling")
-            date_text = date_div.inner_text().strip()
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
 
-            # 日付から年月日を抽出
-            match = re.search(r"(\d{4})年(\d{1,2})月(\d{1,2})日", date_text)
-            if not match:
-                raise ValueError(f"日付形式が不明: {date_text}")
-            year, month, day = map(int, match.groups())
-            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
-
+            # 🏷 タイトル
+            title = block.locator("a").first.inner_text().strip()
+            # 🔗 リンク（<p>内のaタグのhref）
+            
+            try:
+                href = block.locator("a").first.get_attribute("href")
+                full_link = urljoin(BASE_URL, href)
+            except:
+                href = ""
+                full_link = DEFAULT_LINK
+            
             items.append({
                 "title": title,
                 "link": full_link,
@@ -70,7 +74,6 @@ def extract_items(page):
             continue
 
     return items
-
 
 # ===== 実行ブロック =====
 with sync_playwright() as p:
