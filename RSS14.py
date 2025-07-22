@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-ORG_NAME = "日本神経学会"
-BASE_URL = "https://www.neurology-jp.org/"
-DEFAULT_LINK = "https://www.neurology-jp.org/"
+BASE_URL = "https://jpns.jp/"
+DEFAULT_LINK = "https://jpns.jp/"
+GAKKAI = "日本末梢神経学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title(f"{ORG_NAME}トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description(f"{ORG_NAME}の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,43 +34,41 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    items = []
-    max_items = 10
 
-    # <dl class="news_list"> の中の dd を基準にループ
-    rows = page.locator("dl.news_list > dd")
-    count = rows.count()
+    page.wait_for_selector("div#topicsList table", timeout=10000) 
+    
+    selector = "div#topicsList table"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
+    items = []
 
+    max_items = 10
     for i in range(min(count, max_items)):
         try:
-            row = rows.nth(i)
+            block = blocks.nth(i)
 
-            # 🔗 タイトルとリンク取得
-            a_tag = row.locator("a").first
-            title = a_tag.inner_text().strip()
-            href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href) if href else DEFAULT_LINK
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
 
-            # 📅 対応する dt（日付）は「dd の直前の兄弟ノード」
-            pub_date = datetime.now(timezone.utc)  # デフォルト
+            # 🏷 タイトル
+            title = block.locator("td").inner_text().strip()
+            # 🔗 リンク（<p>内のaタグのhref）
+            
             try:
-                dt_selector = f"dl.news_list > dt:nth-of-type({i + 1})"
-                date_text = page.locator(dt_selector).inner_text().strip()
-                pub_date = datetime.strptime(date_text, "%Y年%m月%d日").replace(tzinfo=timezone.utc)
+                href = block.locator("a").first.get_attribute("href")
+                full_link = urljoin(BASE_URL, href)
             except:
-                pass  # 日付がない場合は now() のまま or continue でも可
-
-            # 📂 カテゴリや補足（任意）
-            category = ""
-
-            description = f"{category}{title}"
+                href = ""
+                full_link = DEFAULT_LINK
+            
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
+
         except Exception as e:
             print(f"⚠ 行{i+1}の解析に失敗: {e}")
             continue
