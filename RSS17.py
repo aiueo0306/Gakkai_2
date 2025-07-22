@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jspm.ne.jp/"
-DEFAULT_LINK = "https://www.jspm.ne.jp/news/index.html"
-ORG_NAME = "日本緩和医療学会"
+BASE_URL = "https://www.kansensho.or.jp/"
+DEFAULT_LINK = "https://www.kansensho.or.jp/"
+GAKKAI = "日本感染症学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title(f"{ORG_NAME}トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description(f"{ORG_NAME}の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,30 +34,34 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "h3.p-articleLoop__title"
-    articles = page.locator(selector)
-    count = articles.count()
+
+    page.wait_for_selector("dl.pico_block_menu dd", timeout=10000) 
+    
+    selector = "dl.pico_block_menu dd"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    for i in range(count):
+    max_items = 10
+    for i in range(min(count, max_items)):
         try:
-            article = articles.nth(i)
+            block = blocks.nth(i)
 
-            # 📅 日付（例：2025.05.01）
-            date_text = article.locator("span.p-articleLoop__date").inner_text().strip()
-            match = re.match(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
-            if not match:
-                raise ValueError(f"日付形式エラー: {date_text}")
-            year, month, day = map(int, match.groups())
-            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
 
-            # 🔗 タイトルとリンク
-            a_tag = article.locator("a.p-articleLoop__transition")
-            title = a_tag.get_attribute("title") or a_tag.inner_text().strip()
-            href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href)
-
+            # 🏷 タイトル
+            title = block.locator("a").first.inner_text().strip()
+            # 🔗 リンク（<p>内のaタグのhref）
+            
+            try:
+                href = block.locator("a").first.get_attribute("href")
+                full_link = urljoin(BASE_URL, href)
+            except:
+                href = ""
+                full_link = DEFAULT_LINK
+            
             items.append({
                 "title": title,
                 "link": full_link,
