@@ -5,16 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-# === 学会情報 ===
-BASE_URL = "https://jsn.or.jp/medic/"
-DEFAULT_LINK = "https://jsn.or.jp/medic/news/index.php"  # トップへのリンクでも可
-ORG_NAME = "日本腎臓学会"
+BASE_URL = "https://www.jcc.gr.jp/"
+DEFAULT_LINK = "https://www.jcc.gr.jp/info-gakkai/list/index.html"
+GAKKAI = "日本心臓病学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title(f"{ORG_NAME}トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description(f"{ORG_NAME}の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -35,30 +34,34 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "section.subpage__contentsData dl.contentsData__list"
-    dl_elements = page.locator(selector)
-    count = dl_elements.count()
+
+    page.wait_for_selector("dl.tablist1 dd", timeout=10000) 
+    
+    selector = "dl.tablist1 dd"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
-    for i in range(count):
+    max_items = 10
+    for i in range(min(count, max_items)):
         try:
-            dl = dl_elements.nth(i)
+            block = blocks.nth(i)
 
-            # 📅 日付の抽出（例: 2025.04.01）
-            date_text = dl.locator("dt.date").inner_text().strip()
-            match = re.match(r"(\d{4})\.(\d{1,2})\.(\d{1,2})", date_text)
-            if not match:
-                raise ValueError(f"日付形式エラー: {date_text}")
-            year, month, day = map(int, match.groups())
-            pub_date = datetime(year, month, day, tzinfo=timezone.utc)
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
 
-            # 🔗 タイトルとリンク
-            a_tag = dl.locator("dd.title a")
-            title = a_tag.inner_text().strip()
-            href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href)
-
+            # 🏷 タイトル
+            title = block.locator("a").inner_text().strip()
+            # 🔗 リンク（<p>内のaタグのhref）
+            
+            try:
+                href = block.locator("a").first.get_attribute("href")
+                full_link = urljoin(BASE_URL, href)
+            except:
+                href = ""
+                full_link = DEFAULT_LINK
+            
             items.append({
                 "title": title,
                 "link": full_link,
@@ -71,7 +74,6 @@ def extract_items(page):
             continue
 
     return items
-
 
 # ===== 実行ブロック =====
 with sync_playwright() as p:
