@@ -5,15 +5,15 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jsom.or.jp/medical/index.html"  # 実際のベースURLに置き換えてください
-DEFAULT_LINK = "https://www.jsom.or.jp/medical/notice/index.html"  # 任意
-ORG_NAME = "日本東洋医学会"
+BASE_URL = "https://ninchishou.jp/"
+DEFAULT_LINK = "https://ninchishou.jp/publics/index/1/block8_limit=20/p8=1#block8"
+GAKKAI = "日本認知症予防学会"
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
-    fg.title(f"{ORG_NAME}トピックス")
+    fg.title(f"{GAKKAI}トピックス")
     fg.link(href=DEFAULT_LINK)
-    fg.description(f"{ORG_NAME}の最新トピック情報")
+    fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -34,41 +34,38 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-    selector = "ul.list > li"
-    rows = page.locator(selector)
-    count = rows.count()
+
+    page.wait_for_selector("ul.news-list li", timeout=10000) 
+    
+    selector = "div class="clearfix.record-lists.record-row1.ad-sortable"
+    blocks = page.locator(selector)
+    count = blocks.count()
     print(f"📦 発見した記事数: {count}")
     items = []
 
     max_items = 10
     for i in range(min(count, max_items)):
-        row = rows.nth(i)
         try:
-            # 🔗 タイトルとリンク
-            a_tag = row.locator("a").first
-            title = a_tag.inner_text().strip()
-            href = a_tag.get_attribute("href")
-            full_link = urljoin(BASE_URL, href)
+            block = blocks.nth(i)
 
-            # 📅 aタグの後ろのノードのtextを取得（和暦ベース）
-            all_text = row.inner_text().strip()
-            # 例: '保険診療における漢方薬の貢献　　25年3月31日掲載'
-            match = re.search(r"(\d{2})年(\d{1,2})月(\d{1,2})日", all_text)
-            if not match:
-                raise ValueError(f"日付が見つかりません: {all_text}")
-            year, month, day = map(int, match.groups())
-            # 和暦 → 西暦（令和なら +2018、平成なら +1988 など要判断）
-            if year >= 30:
-                western_year = 1900 + year  # 明治〜昭和 or 平成前半と仮定（調整可能）
-            else:
-                western_year = 2000 + year  # 令和対応
-            pub_date = datetime(western_year, month, day, tzinfo=timezone.utc)
+            # 🕒 日付を現在時刻に固定
+            pub_date = datetime.now(timezone.utc)
 
-            description = title
+            # 🏷 タイトル
+            title = block.locator("span").inner_text().strip()
+            # 🔗 リンク（<p>内のaタグのhref）
+            
+            try:
+                href = block.locator("a").first.get_attribute("href")
+                full_link = urljoin(BASE_URL, href)
+            except:
+                href = ""
+                full_link = DEFAULT_LINK
+            
             items.append({
                 "title": title,
                 "link": full_link,
-                "description": description,
+                "description": title,
                 "pub_date": pub_date
             })
 
@@ -77,7 +74,6 @@ def extract_items(page):
             continue
 
     return items
-
 
 # ===== 実行ブロック =====
 with sync_playwright() as p:
