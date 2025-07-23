@@ -52,11 +52,11 @@ def extract_items(page):
             pub_date = datetime.now(timezone.utc)
 
             # 🏷 タイトル
-            title = block.locator("li").nth(1).locator("a").first.inner_text().strip()
+            title = block.locator("li").nth(2).locator("a").first.inner_text().strip()
             # 🔗 リンク（<p>内のaタグのhref）
             
             try:
-                href = block.locator("li").nth(1).locator("a").first.get_attribute("href")
+                href = block.locator("li").nth(2).locator("a").first.get_attribute("href")
                 full_link = urljoin(BASE_URL, href)
             except:
                 href = ""
