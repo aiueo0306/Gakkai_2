@@ -5,14 +5,19 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://www.jcc.gr.jp/"
-DEFAULT_LINK = "https://www.jcc.gr.jp/info-gakkai/list/index.html"
+BASE_URL = "https://www.jcc.gr.jp/info-gakkai/list/index.html"
 GAKKAI = "日本心臓病学会"
+
+selector = "dl.tablist1 dd"
+TITLE_SELECTOR = "a"
+TITLE_index= 0
+href_SELECTOR = "a"
+href_index = 0
 
 def generate_rss(items, output_path):
     fg = FeedGenerator()
     fg.title(f"{GAKKAI}トピックス")
-    fg.link(href=DEFAULT_LINK)
+    fg.link(href=BASE_URL)
     fg.description(f"{GAKKAI}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
@@ -33,10 +38,9 @@ def generate_rss(items, output_path):
 
 
 def extract_items(page):
-
-    page.wait_for_selector("dl.tablist1 dd", timeout=10000) 
     
-    selector = "dl.tablist1 dd"
+    page.wait_for_selector(selector, timeout=10000) 
+    
     blocks = page.locator(selector)
     count = blocks.count()
     print(f"📦 発見した記事数: {count}")
@@ -50,16 +54,18 @@ def extract_items(page):
             # 🕒 日付を現在時刻に固定
             pub_date = datetime.now(timezone.utc)
 
-            # 🏷 タイトル
-            title = block.locator("span.bold").first.inner_text().strip()
-            # 🔗 リンク（<p>内のaタグのhref）
-            
+            title = block.locator(TITLE_SELECTOR).nth(TITLE_index).inner_text().strip()
+                
             try:
-                href = block.locator("a").first.get_attribute("href")
+                href = block.locator(href_SELECTOR).nth(href_index).get_attribute("href")
                 full_link = urljoin(BASE_URL, href)
             except:
                 href = ""
-                full_link = DEFAULT_LINK
+                full_link = BASE_URL
+
+            if not title or not href:
+                print(f"⚠ 必須フィールドが欠落したためスキップ（{i+1}行目）: title='{title}', href='{href}'")
+                continue
             
             items.append({
                 "title": title,
@@ -71,7 +77,7 @@ def extract_items(page):
         except Exception as e:
             print(f"⚠ 行{i+1}の解析に失敗: {e}")
             continue
-
+            
     return items
 
 # ===== 実行ブロック =====
@@ -83,7 +89,7 @@ with sync_playwright() as p:
 
     try:
         print("▶ ページにアクセス中...")
-        page.goto(DEFAULT_LINK, timeout=30000)
+        page.goto(BASE_URL, timeout=30000)
         page.wait_for_load_state("load", timeout=30000)
     except PlaywrightTimeoutError:
         print("⚠ ページの読み込みに失敗しました。")
