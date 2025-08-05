@@ -5,10 +5,10 @@ import os
 import re
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-BASE_URL = "https://plaza.umin.ac.jp/jspfsm/record.htm"
+BASE_URL = "https://plaza.umin.ac.jp/jspfsm/"
 GAKKAI = "日本体力医学会"
 
-selector = "div.content li"
+selector = "div#main_left li"
 TITLE_SELECTOR = "a"
 TITLE_index= 0
 href_SELECTOR = "a"
