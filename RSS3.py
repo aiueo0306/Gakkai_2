@@ -9,17 +9,26 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 BASE_URL = "https://jasweb.or.jp/"
 GAKKAI = "日本喘息学会"
 
-selector = "dd"
-TITLE_SELECTOR = "a"
-TITLE_index= 0
-href_SELECTOR = "a"
+SELECTOR_TITLE = "dl dd"
+title_selector = "a"
+title_index = 0
+href_selector = "a"
 href_index = 0
+SELECTOR_DATE = "dl dt"
+date_selector = ""
+date_index = 0
+year_unit = "."
+month_unit = "."
+day_unit = ""
+date_format = f"%Y{year_unit}%m{month_unit}%d{day_unit}"
+date_regex = rf"(\d{{2,4}}){year_unit}(\d{{1,2}}){month_unit}(\d{{1,2}}){day_unit}"
 
-def generate_rss(items, output_path):
+
+def generate_rss(items, output_path, BASE_URL, gakkai_name):
     fg = FeedGenerator()
-    fg.title(f"{GAKKAI}トピックス")
+    fg.title(f"{gakkai_name}トピックス")
     fg.link(href=BASE_URL)
-    fg.description(f"{GAKKAI}の最新トピック情報")
+    fg.description(f"{gakkai_name}の最新トピック情報")
     fg.language("ja")
     fg.generator("python-feedgen")
     fg.docs("http://www.rssboard.org/rss-specification")
@@ -30,8 +39,15 @@ def generate_rss(items, output_path):
         entry.title(item['title'])
         entry.link(href=item['link'])
         entry.description(item['description'])
-        entry.guid(item['link'], permalink=True)
-        entry.pubDate(item['pub_date'])
+
+        if item['pub_date'] is not None:
+            guid_value = f"{item['link']}#{item['pub_date'].strftime('%Y%m%d')}"
+            entry.guid(guid_value, permalink=False)
+            entry.pubDate(item['pub_date'])
+        else:
+            # 日付がない場合はリンクそのものをGUIDにしてpermalink=True
+            entry.guid(item['link'], permalink=True)
+            # pubDateは設定しない
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     fg.rss_file(output_path)
@@ -51,30 +67,71 @@ def extract_items(page):
         print("⚠ iframeの中身（frame）がまだ読み込まれていません")
         return []
 
-    frame.wait_for_selector(selector, timeout=10000)
+    frame.wait_for_selector(SELECTOR_TITLE , timeout=10000)
 
-    blocks = frame.locator(selector)
-    count = blocks.count()
+    blocks1 = frame.locator(SELECTOR_TITLE )
+    count = blocks1.count()
     print(f"📦 発見した記事数: {count}")
     items = []
+
+    blocks2 = frame.locator(SELECTOR_DATE)
 
     max_items = 10
     for i in range(min(count, max_items)):
         try:
-            block = blocks.nth(i)
-            pub_date = datetime.now(timezone.utc)
-            title = block.locator(TITLE_SELECTOR).nth(TITLE_index).inner_text().strip()
+            block1 = blocks1.nth(i)
+            block2 = blocks2.nth(i)
 
-            try:
-                href = block.locator(href_SELECTOR).nth(href_index).get_attribute("href")
-                full_link = urljoin(BASE_URL, href)
-            except:
-                href = ""
-                full_link = BASE_URL
+            if title_selector:
+                title_elem = block1.locator(title_selector).nth(title_index)
+                title = title_elem.inner_text().strip()
+            else:
+                title = block1.inner_text().strip()
+            print(title)
 
-            if not title or not href:
-                print(f"⚠ 必須フィールドが欠落したためスキップ（{i+1}行目）: title='{title}', href='{href}'")
-                continue
+            # URL
+            if title_selector:
+                try:
+                    href = block1.locator(href_selector).nth(href_index).get_attribute("href")
+                    full_link = urljoin(BASE_URL, href)
+                except:
+                    href = ""
+                    full_link = BASE_URL
+            else:
+                try:
+                    href = block1.get_attribute("href")
+                    full_link = urljoin(BASE_URL, href)
+                except:
+                    href = ""
+                    full_link = BASE_URL
+            print(full_link)
+            
+            # 日付
+            # date_selector が空文字や None でない場合 → 子要素探索、それ以外はそのまま
+            if date_selector:
+                try:
+                    date_text = block2.locator(date_selector).nth(date_index).inner_text().strip()
+                except Exception as e:
+                    print(f"⚠ 日付セレクターによる取得に失敗: {e}")
+                    date_text = ""
+            else:
+                try:
+                    date_text = block2.inner_text().strip()
+                except Exception as e:
+                    print(f"⚠ 直接日付取得に失敗: {e}")
+                    date_text = ""
+            print(date_text)
+            match = re.search(date_regex, date_text)
+
+            if match:
+                year_str, month_str, day_str = match.groups()
+                year = int(year_str)
+                if year < 100:
+                    year += 2000  # 2桁西暦 → 2000年以降と仮定
+                pub_date = datetime(year, int(month_str), int(day_str), tzinfo=timezone.utc)
+            else:
+                print("⚠ 日付の抽出に失敗しました")
+                pub_date = None  # or continue
 
             items.append({
                 "title": title,
@@ -111,5 +168,5 @@ with sync_playwright() as p:
         print("⚠ 抽出できた記事がありません。HTML構造が変わっている可能性があります。")
 
     rss_path = "rss_output/Feed3.xml"
-    generate_rss(items, rss_path)
+    generate_rss(items, rss_path,BASE_URL,GAKKAI)
     browser.close()
