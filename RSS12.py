@@ -25,13 +25,13 @@ from scraper_utils import extract_items
 BASE_URL = "https://ninchishou.jp/publics/index/1/block8_limit=20/p8=1#block8"
 GAKKAI = "日本認知症予防学会"
 
-SELECTOR_TITLE = "div#block8 div.clearfix"
+SELECTOR_TITLE = "div#block8 div.record.type013-list.ad-edit-item.m-top-0.m-bottom-0.border-b-d.mbcolor-op50"
 title_selector = "span"
 title_index = 1
-href_selector = "a"
+href_selector = "aaaaaa"
 href_index = 0
-SELECTOR_DATE = ""
-date_selector = "aaaaaaa"
+SELECTOR_DATE = None
+date_selector = ""
 date_index = 0
 year_unit = ""
 month_unit = ""
